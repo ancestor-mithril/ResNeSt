@@ -1,10 +1,4 @@
-##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-## Created by: Hang Zhang
-## Email: zhanghang0704@gmail.com
-## Copyright (c) 2020
-##
-## LICENSE file in the root directory of this source tree 
-##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# Adapted to work on CIFAR-10
 """ResNet variants"""
 import math
 import torch
@@ -192,7 +186,7 @@ class ResNet(nn.Module):
         conv_kwargs = {'average_mode': rectify_avg} if rectified_conv else {}
         if deep_stem:
             self.conv1 = nn.Sequential(
-                conv_layer(3, stem_width, kernel_size=3, stride=2, padding=1, bias=False, **conv_kwargs),
+                conv_layer(3, stem_width, kernel_size=3, stride=1, padding=1, bias=False, **conv_kwargs),
                 norm_layer(stem_width),
                 nn.ReLU(inplace=True),
                 conv_layer(stem_width, stem_width, kernel_size=3, stride=1, padding=1, bias=False, **conv_kwargs),
@@ -297,22 +291,26 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def forward(self, x):
-        x = self.conv1(x)
+        # 3, 32, 32
+        x = self.conv1(x)  # 32, 32, 32
+
         x = self.bn1(x)
         x = self.relu(x)
-        x = self.maxpool(x)
+        x = self.maxpool(x) # 32, 16, 16
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        x = self.layer1(x)  # 256, 16, 16
+        x = self.layer2(x)  # 512, 8, 8
+        x = self.layer3(x)  # 1024, 4, 4
+        x = self.layer4(x)  # 2048, 2, 2
 
-        x = self.avgpool(x)
+        x = self.avgpool(x) # 2048
+
         x = torch.flatten(x, 1)
+
         if self.drop:
             x = self.drop(x)
-        x = self.fc(x)
 
+        x = self.fc(x)
         return x
 
 @RESNEST_MODELS_REGISTRY.register()
